@@ -1,56 +1,136 @@
 import pickle
 import os
+import logging
+from typing import List
+
 
 TASKS_FILE = "tasks.pkl"
 
-def load_tasks():
-    if os.path.exists(TASKS_FILE):
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
+
+
+def load_tasks() -> List[str]:
+    """Load tasks from storage."""
+    if not os.path.exists(TASKS_FILE):
+        logging.info("No existing task file found")
+        return []
+
+    try:
         with open(TASKS_FILE, "rb") as file:
-            return pickle.load(file)
-    return []
+            tasks = pickle.load(file)
+            if not isinstance(tasks, list):
+                raise ValueError("Invalid task data")
+            return tasks
+    except Exception as e:
+        logging.error(f"Failed to load tasks: {e}")
+        return []
 
-def save_tasks(tasks):
-    with open(TASKS_FILE, "wb") as file:
-        pickle.dump(tasks, file)
 
-def display_tasks(tasks):
-    if tasks:
-        for i, task in enumerate(tasks, 1):
-            print(f"{i}. {task}")
+def save_tasks(tasks: List[str]) -> None:
+    """Save tasks to storage safely."""
+    try:
+        with open(TASKS_FILE, "wb") as file:
+            pickle.dump(tasks, file)
+            logging.info("Tasks saved successfully")
+    except Exception as e:
+        logging.error(f"Failed to save tasks: {e}")
+
+
+def display_tasks(tasks: List[str]) -> None:
+    """Display tasks in a formatted manner."""
+    if not tasks:
+        print("\n📭 No tasks available.")
+        return
+
+    print("\n📋 Your Tasks:")
+    for index, task in enumerate(tasks, start=1):
+        print(f"{index}. {task}")
+
+
+def add_task(tasks: List[str]) -> None:
+    task = input("Enter new task: ").strip()
+    if task:
+        tasks.append(task)
+        print("✅ Task added successfully.")
     else:
-        print("No tasks found.")
+        print("⚠ Task cannot be empty.")
 
-def main():
+
+def remove_task(tasks: List[str]) -> None:
+    display_tasks(tasks)
+    if not tasks:
+        return
+
+    try:
+        index = int(input("Enter task number to remove: ")) - 1
+        removed = tasks.pop(index)
+        print(f"🗑 Task removed: {removed}")
+    except (ValueError, IndexError):
+        print("❌ Invalid task number.")
+
+
+def update_task(tasks: List[str]) -> None:
+    display_tasks(tasks)
+    if not tasks:
+        return
+
+    try:
+        index = int(input("Enter task number to update: ")) - 1
+        new_task = input("Enter updated task: ").strip()
+
+        if not new_task:
+            print("⚠ Task cannot be empty.")
+            return
+
+        old_task = tasks[index]
+        tasks[index] = new_task
+        print(f"✏ Task updated: '{old_task}' → '{new_task}'")
+    except (ValueError, IndexError):
+        print("Invalid task number.")
+
+
+def show_menu() -> None:
+    print("""
+=============================
+      TASK MANAGER
+=============================
+1️⃣  View Tasks
+2️⃣  Add Task
+3️⃣  Remove Task
+4️⃣  Update Task
+5️⃣  Exit
+""")
+
+
+def main() -> None:
     tasks = load_tasks()
+
     while True:
-        print("\n1. View Tasks\n2. Add Task\n3. Remove Task\n4. Update Task\n5. Exit")
-        choice = input("Choose an option: ")
-        
-        if choice == "1":
-            display_tasks(tasks)
-        elif choice == "2":
-            tasks.append(input("Enter task: "))
-            print("Task added.")
-        elif choice == "3":
-            display_tasks(tasks)
-            try:
-                tasks.pop(int(input("Enter task number to remove: ")) - 1)
-                print("Task removed.")
-            except:
-                print("Invalid input.")
-        elif choice == "4":
-            display_tasks(tasks)
-            try:
-                index = int(input("Enter task number to update: ")) - 1
-                tasks[index] = input("New task: ")
-                print("Task updated.")
-            except:
-                print("Invalid input.")
-        elif choice == "5":
-            save_tasks(tasks)
-            break
-        else:
-            print("Invalid choice.")
+        show_menu()
+        choice = input("Choose an option: ").strip()
+
+        match choice:
+            case "1":
+                display_tasks(tasks)
+            case "2":
+                add_task(tasks)
+            case "3":
+                remove_task(tasks)
+            case "4":
+                update_task(tasks)
+            case "5":
+                save_tasks(tasks)
+                print(" Goodbye! Tasks saved.")
+                break
+            case _:
+                print(" Invalid choice. Please try again.")
+
 
 if __name__ == "__main__":
     main()
+
+
+               
